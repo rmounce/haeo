@@ -3,10 +3,11 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from highspy import Highs, HighsModelStatus
 from highspy.highs import highs_cons, highs_linear_expression
+import numpy as np
 
 from .element import Element
 from .elements import ELEMENTS
@@ -41,9 +42,9 @@ class Network:
         self._solver.cbLogging += self._log_callback
 
         # Disable console output since we're capturing via callback
-        output_off = False
-        self._solver.setOptionValue("output_flag", output_off)
-        self._solver.setOptionValue("log_to_console", output_off)
+        output_off = True
+        self._solver.setOptionValue("output_flag", not output_off)
+        self._solver.setOptionValue("log_to_console", not output_off)
 
     @staticmethod
     def _log_callback(_log_type: int, message: str) -> None:
@@ -155,7 +156,7 @@ class Network:
 
         h = self._solver
 
-        # Collect constraints from all elements (reactive - calling triggers decorator lifecycle)
+        # 1. Build constraints for all elements (reactive - calling triggers decorator lifecycle)
         for element_name, element in self.elements.items():
             try:
                 element.constraints()
@@ -163,14 +164,61 @@ class Network:
                 msg = f"Failed to apply constraints for element '{element_name}'"
                 raise ValueError(msg) from e
 
-        # Get aggregated cost from network (reactive - only rebuilds if any element cost invalidated)
-        if (total_cost := self.cost()) is not None:
+        # 2. Get aggregated linear cost from network
+        # This also triggers auxiliary variable creation for quadratic terms via element.cost()
+        total_cost = self.cost()
+
+        # 3. Collect quadratic terms (now that auxiliary variables exist)
+        q_terms: list[tuple[int, int, float]] = []
+        for element in self.elements.values():
+            q_terms.extend(element.quadratic_terms())
+
+        # 4. Set optimization sense and linear objective
+        if total_cost is not None:
             h.minimize(total_cost)
         else:
-            # No cost terms - just run to check feasibility
-            h.run()
+            # Feasibility only or purely quadratic problem
+            h.minimize()
 
-        # Check optimization status
+        # 5. Set Hessian if quadratic terms exist
+        if q_terms:
+            n_cols = h.getNumCol()
+            # Sort terms by column index, then row index (CSC requirement)
+            q_terms.sort(key=lambda x: (x[1], x[0]))
+
+            # Consolidate duplicate (row, col) entries
+            consolidated: list[tuple[int, int, float]] = []
+            if q_terms:
+                curr_r, curr_c, curr_v = q_terms[0]
+                for r, c, v in q_terms[1:]:
+                    if r == curr_r and c == curr_c:
+                        curr_v += v
+                    else:
+                        consolidated.append((curr_r, curr_c, curr_v))
+                        curr_r, curr_c, curr_v = r, c, v
+                consolidated.append((curr_r, curr_c, curr_v))
+
+            num_nz = len(consolidated)
+            start = np.zeros(n_cols + 1, dtype=np.int32)
+            index = np.zeros(num_nz, dtype=np.int32)
+            value = np.zeros(num_nz, dtype=np.float64)
+
+            # Build CSC structures
+            counts = np.zeros(n_cols, dtype=np.int32)
+            for r, c, v in consolidated:
+                counts[c] += 1
+            np.cumsum(counts, out=start[1:])
+
+            for i, (r, c, v) in enumerate(consolidated):
+                index[i] = r
+                value[i] = v
+
+            h.passHessian(n_cols, num_nz, 1, start, index, value)
+
+        # 6. Run solver
+        h.run()
+
+        # 7. Check optimization status
         status = h.getModelStatus()
         if status == HighsModelStatus.kOptimal:
             return h.getObjectiveValue()

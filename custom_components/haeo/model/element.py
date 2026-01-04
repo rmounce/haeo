@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Literal
 
 from highspy import Highs
-from highspy.highs import HighspyArray, highs_cons
+from highspy.highs import HighspyArray, highs_cons, highs_linear_expression, highs_var
 import numpy as np
 from numpy.typing import NDArray
 
@@ -36,6 +36,8 @@ class Element[OutputNameT: str]:
         *,
         solver: Highs,
         output_names: frozenset[OutputNameT],
+        quadratic_penalty_cost: float | None = None,
+        nominal_power: float | None = None,
     ) -> None:
         """Initialize an element.
 
@@ -44,12 +46,22 @@ class Element[OutputNameT: str]:
             periods: Sequence of time period durations in hours (one per optimization interval)
             solver: The HiGHS solver instance for creating variables and constraints
             output_names: Frozenset of valid output names for this element type (used for type narrowing)
+            quadratic_penalty_cost: Cost (Currency/kWh) applied when device is running at full nominal power
+            nominal_power: Reference power level (kW) for penalty scaling
 
         """
         self.name = name
         self.periods = np.asarray(periods)
         self._solver = solver
         self._output_names = output_names
+        self.quadratic_penalty_cost = quadratic_penalty_cost
+        self.nominal_power = nominal_power
+
+        # Quadratic penalty storage: list of (variable, scale, period_idx) tuples
+        self._quadratic_penalties: list[tuple[highs_var | HighspyArray | NDArray[Any], float, int]] = []
+
+        # Cache for variable index mapping
+        self._var_map: dict[int, highs_var] | None = None
 
         # Track connections for power balance
         self._connections: list[tuple[Connection[Any], Literal["source", "target"]]] = []
@@ -245,3 +257,105 @@ class Element[OutputNameT: str]:
             return costs[0]
         # Sum all cost expressions
         return sum(costs[1:], costs[0])
+
+    def _quadratic_term(
+        self,
+        variable: highs_var | HighspyArray | NDArray[Any] | highs_linear_expression,
+    ) -> None:
+        """Register a quadratic cost term for a variable or array of variables.
+
+        Cost = (C_qp / P_nom) * P^2 * Delta_t
+
+        If the input is an expression (e.g. battery power derived from energy),
+        creates an auxiliary variable, constraints it to the expression,
+        and penalizes the auxiliary variable.
+
+        Args:
+            variable: The power variable(s) or expression(s) (kW)
+
+        Returns:
+            None. (Registers term internally for Hessian construction)
+
+        """
+        if self.quadratic_penalty_cost is None or self.nominal_power is None or self.nominal_power == 0:
+            return None
+
+        # Scaling factor: cost per unit squared
+        # Cost = k * P^2 * dt  => k = C_qp / P_nom
+
+        scale = self.quadratic_penalty_cost / self.nominal_power
+
+        # Handle inputs
+        # We want to normalize to: list/array of items
+        # Each item is either a variable (has .index) or expression (needs aux)
+
+        vars_to_penalize = []
+        # Helper to process single item
+        def process_item(item: Any, period_idx: int) -> None:
+            # Try to recover variable from index if item is integer
+            if isinstance(item, (int, np.integer)):
+                if self._var_map is None:
+                    # Initialize map
+                    try:
+                        from .util.highs_var_helper import get_highs_var_map
+                        self._var_map = get_highs_var_map(self._solver)
+                    except (ImportError, Exception):
+                        # Fallback if helper not available or fails
+                        try:
+                            self._var_map = {v.index: v for v in self._solver.getVariables()}
+                        except Exception:
+                            self._var_map = {}
+
+                if item in self._var_map:
+                    item = self._var_map[item]
+
+            if hasattr(item, "index"):
+                # It's a variable
+                vars_to_penalize.append((item, scale, period_idx))
+            else:
+                # Assume it's an expression or value
+                # Create auxiliary variable
+                # Bounds: -inf to inf (let constraint determine limits)
+                aux_name = f"{self.name}_quad_aux_{len(self._quadratic_penalties) + len(vars_to_penalize)}_{period_idx}"
+                aux = self._solver.addVariable(lb=float("-inf"), ub=float("inf"), name=aux_name)
+
+                # Add equality constraint: aux == item
+                self._solver.addConstr(aux == item)
+
+                vars_to_penalize.append((aux, scale, period_idx))
+
+        # Check for array/sequence
+        if hasattr(variable, "__len__") and not isinstance(variable, str): # str check just in case
+             # It's a sequence/array
+             # Safe iteration:
+             try:
+                 for i, item in enumerate(variable):
+                     process_item(item, i)
+             except TypeError:
+                 # Not iterable? Treat as scalar
+                 process_item(variable, 0)
+        else:
+             # Scalar
+             process_item(variable, 0)
+
+        # Register processed variables
+        self._quadratic_penalties.extend(vars_to_penalize)
+        return None
+
+    def quadratic_terms(self) -> Sequence[tuple[int, int, float]]:
+        """Return quadratic terms for the objective Hessian.
+
+        Returns:
+            List of (row_idx, col_idx, value) triplets for the upper triangular Hessian.
+            The objective term is 0.5 * x^T * H * x.
+            So for term c * x^2, the Hessian diagonal entry is 2 * c.
+        """
+        terms: list[tuple[int, int, float]] = []
+
+        for variable, scale, period_idx in self._quadratic_penalties:
+            if hasattr(variable, "index"):
+                idx = int(variable.index)
+                val = 2.0 * scale * self.periods[period_idx]
+                terms.append((idx, idx, val))
+
+        return terms
