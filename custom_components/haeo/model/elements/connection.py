@@ -5,7 +5,7 @@ Subclasses like PowerConnection add efficiency, pricing, and power limits.
 """
 
 from collections.abc import Sequence
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from highspy import Highs
 from highspy.highs import HighspyArray
@@ -14,6 +14,7 @@ from custom_components.haeo.model.const import OutputType
 from custom_components.haeo.model.element import Element
 from custom_components.haeo.model.output_data import OutputData
 from custom_components.haeo.model.reactive import output
+from ..util import ensure_highs_vars
 
 # Base connection output names - extended by subclasses
 type ConnectionOutputName = Literal[
@@ -56,6 +57,7 @@ class Connection[OutputNameT: str](Element[OutputNameT]):
         source: str,
         target: str,
         output_names: frozenset[OutputNameT] = CONNECTION_OUTPUT_NAMES,  # type: ignore[assignment]  # Subclasses override with extended sets
+        **kwargs: Any,
     ) -> None:
         """Initialize a lossless connection between two elements.
 
@@ -68,7 +70,7 @@ class Connection[OutputNameT: str](Element[OutputNameT]):
             output_names: Frozenset of valid output names (subclasses can extend)
 
         """
-        super().__init__(name=name, periods=periods, solver=solver, output_names=output_names)  # type: ignore[arg-type]  # Parent accepts concrete subclass output names
+        super().__init__(name=name, periods=periods, solver=solver, output_names=output_names, **kwargs)  # type: ignore[arg-type]  # Parent accepts concrete subclass output names
         n_periods = self.n_periods
         h = solver
 
@@ -77,8 +79,11 @@ class Connection[OutputNameT: str](Element[OutputNameT]):
         self._target = target
 
         # Create power variables for bidirectional flow
-        self._power_source_target = h.addVariables(n_periods, lb=0, name_prefix=f"{name}_power_st_", out_array=True)
-        self._power_target_source = h.addVariables(n_periods, lb=0, name_prefix=f"{name}_power_ts_", out_array=True)
+        raw_st = h.addVariables(n_periods, lb=0, name_prefix=f"{name}_power_st_", out_array=True)
+        self._power_source_target = ensure_highs_vars(raw_st, h)
+
+        raw_ts = h.addVariables(n_periods, lb=0, name_prefix=f"{name}_power_ts_", out_array=True)
+        self._power_target_source = ensure_highs_vars(raw_ts, h)
 
     @property
     def source(self) -> str:
