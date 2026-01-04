@@ -1,7 +1,7 @@
 """Battery balance connection for energy redistribution between battery sections."""
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Final, Literal
+from typing import TYPE_CHECKING, Any, Final, Literal
 
 from highspy import Highs
 from highspy.highs import HighspyArray, highs_linear_expression
@@ -80,6 +80,7 @@ class BatteryBalanceConnection(Connection[BatteryBalanceConnectionOutputName]):
         upper: str,
         lower: str,
         slack_penalty: float | None = None,
+        **kwargs: Any,
     ) -> None:
         """Initialize a battery balance connection.
 
@@ -101,6 +102,7 @@ class BatteryBalanceConnection(Connection[BatteryBalanceConnectionOutputName]):
             source=upper,
             target=lower,
             output_names=BATTERY_BALANCE_CONNECTION_OUTPUT_NAMES,  # type: ignore[arg-type]  # Parent accepts concrete subclass output names
+            **kwargs,
         )
         n_periods = self.n_periods
         h = solver
@@ -236,7 +238,14 @@ class BatteryBalanceConnection(Connection[BatteryBalanceConnectionOutputName]):
         unmet_cost = self.unmet_demand * periods * self._slack_penalty
         absorbed_cost = self.absorbed_excess * periods * self._slack_penalty
 
-        return [*list(unmet_cost), *list(absorbed_cost)]
+        costs = [*list(unmet_cost), *list(absorbed_cost)]
+
+        # Add quadratic penalty if configured
+        # Applied to both flow directions if configured
+        self._quadratic_term(self._power_down)
+        self._quadratic_term(self._power_up)
+
+        return costs
 
     @output
     def balance_power_down(self) -> OutputData:

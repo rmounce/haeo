@@ -1,7 +1,7 @@
 """Power connection class for electrical system modeling."""
 
 from collections.abc import Sequence
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from highspy import Highs
 from highspy.highs import HighspyArray, highs_linear_expression
@@ -87,6 +87,7 @@ class PowerConnection(Connection[PowerConnectionOutputName]):
         efficiency_target_source: float | Sequence[float] | None = None,
         price_source_target: float | Sequence[float] | None = None,
         price_target_source: float | Sequence[float] | None = None,
+        **kwargs: Any,
     ) -> None:
         """Initialize a connection between two elements.
 
@@ -114,6 +115,7 @@ class PowerConnection(Connection[PowerConnectionOutputName]):
             source=source,
             target=target,
             output_names=POWER_CONNECTION_OUTPUT_NAMES,  # type: ignore[arg-type]  # Parent accepts concrete subclass output names
+            **kwargs,
         )
         n_periods = self.n_periods
 
@@ -221,6 +223,12 @@ class PowerConnection(Connection[PowerConnectionOutputName]):
             return None
         # Multiply power array by price tuple and period tuple
         return Highs.qsum(self.power_target_source * self.price_target_source * self.periods)
+
+    @cost
+    def quadratic_flow_penalty(self) -> None:
+        """Apply quadratic flow penalty to both directions."""
+        self._quadratic_term(self.power_source_target)
+        self._quadratic_term(self.power_target_source)
 
     @output
     def connection_cost_source_target(self) -> OutputData | None:

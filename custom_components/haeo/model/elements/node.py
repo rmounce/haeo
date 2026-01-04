@@ -1,13 +1,13 @@
 """Node entity for electrical system modeling."""
 
 from collections.abc import Sequence
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from highspy import Highs
 from highspy.highs import highs_linear_expression
 
 from custom_components.haeo.model.element import Element
-from custom_components.haeo.model.reactive import constraint
+from custom_components.haeo.model.reactive import constraint, cost
 
 type NodeConstraintName = Literal["node_power_balance"]
 
@@ -39,6 +39,7 @@ class Node(Element[NodeOutputName]):
         solver: Highs,
         is_source: bool = True,
         is_sink: bool = True,
+        **kwargs: Any,
     ) -> None:
         """Initialize a node entity.
 
@@ -50,11 +51,16 @@ class Node(Element[NodeOutputName]):
             is_sink: Whether this element can consume power (sink behavior)
 
         """
-        super().__init__(name=name, periods=periods, solver=solver, output_names=NODE_OUTPUT_NAMES)
+        super().__init__(name=name, periods=periods, solver=solver, output_names=NODE_OUTPUT_NAMES, **kwargs)
 
         # Store if we are a source and/or sink
         self.is_source = is_source
         self.is_sink = is_sink
+
+    @cost
+    def flow_penalty_cost(self) -> None:
+        """Apply quadratic flow penalty to net connection power."""
+        self._quadratic_term(self.connection_power())
 
     @constraint(output=True, unit="$/kW")
     def node_power_balance(self) -> list[highs_linear_expression] | None:

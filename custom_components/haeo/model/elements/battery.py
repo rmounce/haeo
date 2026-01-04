@@ -1,7 +1,7 @@
 """Battery entity for electrical system modeling."""
 
 from collections.abc import Sequence
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from highspy import Highs
 from highspy.highs import highs_linear_expression
@@ -11,7 +11,7 @@ from numpy.typing import NDArray
 from custom_components.haeo.model.const import OutputType
 from custom_components.haeo.model.element import Element
 from custom_components.haeo.model.output_data import OutputData
-from custom_components.haeo.model.reactive import TrackedParam, constraint, output
+from custom_components.haeo.model.reactive import TrackedParam, constraint, cost, output
 from custom_components.haeo.model.util import broadcast_to_sequence
 
 # Type for battery constraint names (shadow prices exposed as outputs)
@@ -72,6 +72,7 @@ class Battery(Element[BatteryOutputName]):
         solver: Highs,
         capacity: Sequence[float] | float,
         initial_charge: float,
+        **kwargs: Any,
     ) -> None:
         """Initialize a battery entity.
 
@@ -83,7 +84,7 @@ class Battery(Element[BatteryOutputName]):
             initial_charge: Initial charge in kWh
 
         """
-        super().__init__(name=name, periods=periods, solver=solver, output_names=BATTERY_OUTPUT_NAMES)
+        super().__init__(name=name, periods=periods, solver=solver, output_names=BATTERY_OUTPUT_NAMES, **kwargs)
         n_periods = self.n_periods
 
         # Set tracked parameters (broadcasts capacity to n_periods + 1)
@@ -148,6 +149,12 @@ class Battery(Element[BatteryOutputName]):
         Output: shadow price indicating the marginal value of power balance constraint.
         """
         return list(self.connection_power() == self.power_consumption - self.power_production)
+
+    @cost
+    def quadratic_flow_penalty(self) -> None:
+        """Apply quadratic flow penalty to charge/discharge power."""
+        self._quadratic_term(self.power_consumption)
+        self._quadratic_term(self.power_production)
 
     # Output methods
 
