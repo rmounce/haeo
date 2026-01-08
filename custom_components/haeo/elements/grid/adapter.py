@@ -23,6 +23,8 @@ from custom_components.haeo.model.output_data import OutputData
 from .flow import GridSubentryFlowHandler
 from .schema import (
     CONF_CONNECTION,
+    CONF_NOMINAL_POWER,
+    CONF_QUADRATIC_PENALTY_COST,
     DEFAULT_EXPORT_PRICE,
     DEFAULT_IMPORT_PRICE,
     ELEMENT_TYPE,
@@ -76,13 +78,21 @@ class GridAdapter:
         """Check if grid configuration can be loaded."""
         ts_loader = TimeSeriesLoader()
 
-        # Helper to check entity list availability
-        def entities_available(value: list[str] | float | None) -> bool:
-            if not isinstance(value, list) or not value:
-                return True  # Constants and missing values are always available
+        # Helper to check entity list availability (empty lists allowed for prices as they default to constants)
+        def check_available(value: Any) -> bool:
+            if value is None or (isinstance(value, list) and not value):
+                return True
             return ts_loader.available(hass=hass, value=value)
 
-        return entities_available(config.get("import_price")) and entities_available(config.get("export_price"))
+        if not check_available(config.get("import_price")) or not check_available(config.get("export_price")):
+            return False
+
+        if CONF_QUADRATIC_PENALTY_COST in config and not ts_loader.available(
+            hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST]
+        ):
+            return False
+
+        return True
 
     async def load(
         self,
@@ -153,6 +163,16 @@ class GridAdapter:
             elif isinstance(export_limit, (int, float)):
                 data["export_limit"] = [float(export_limit)] * n_periods
 
+        qp_cost = config.get(CONF_QUADRATIC_PENALTY_COST)
+        if qp_cost is not None:
+            data["quadratic_penalty_cost"] = await ts_loader.load_intervals(
+                hass=hass, value=qp_cost, forecast_times=forecast_times
+            )
+
+        nominal_power = config.get(CONF_NOMINAL_POWER)
+        if nominal_power is not None:
+            data["nominal_power"] = nominal_power
+
         return data
 
     def model_elements(self, config: GridConfigData) -> list[dict[str, Any]]:
@@ -170,6 +190,8 @@ class GridAdapter:
                 "max_power_target_source": config.get("export_limit"),  # target_source is system to grid (EXPORT)
                 "price_source_target": config["import_price"],
                 "price_target_source": [-p for p in config["export_price"]],  # Negate because exporting earns money
+                "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                "nominal_power": config.get("nominal_power"),
             },
         ]
 

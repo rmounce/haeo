@@ -102,7 +102,9 @@
             "overcharge_cost_mode": "Overcharge Cost Source",
             "overcharge_percentage_mode": "Overcharge Percentage Source",
             "undercharge_cost_mode": "Undercharge Cost Source",
-            "undercharge_percentage_mode": "Undercharge Percentage Source"
+            "undercharge_percentage_mode": "Undercharge Percentage Source",
+            "quadratic_penalty_cost_mode": "Flow Penalty Source (Smoothing)",
+            "nominal_power_mode": "Nominal Power Source (for scaling penalty)"
           }
         },
         "reconfigure": {
@@ -123,7 +125,9 @@
             "overcharge_cost_mode": "Overcharge Cost Source",
             "overcharge_percentage_mode": "Overcharge Percentage Source",
             "undercharge_cost_mode": "Undercharge Cost Source",
-            "undercharge_percentage_mode": "Undercharge Percentage Source"
+            "undercharge_percentage_mode": "Undercharge Percentage Source",
+            "quadratic_penalty_cost_mode": "Flow Penalty Source (Smoothing)",
+            "nominal_power_mode": "Nominal Power Source (for scaling penalty)"
           }
         },
         "reconfigure_values": {
@@ -142,7 +146,9 @@
             "overcharge_cost": "Overcharge Cost",
             "overcharge_percentage": "Overcharge Percentage",
             "undercharge_cost": "Undercharge Cost",
-            "undercharge_percentage": "Undercharge Percentage"
+            "undercharge_percentage": "Undercharge Percentage",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "values": {
@@ -161,7 +167,9 @@
             "overcharge_cost": "Overcharge Cost",
             "overcharge_percentage": "Overcharge Percentage",
             "undercharge_cost": "Undercharge Cost",
-            "undercharge_percentage": "Undercharge Percentage"
+            "undercharge_percentage": "Undercharge Percentage",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -228,7 +236,9 @@
             "price_source_target": "Price Source to Target",
             "price_target_source": "Price Target to Source",
             "source": "Source Device",
-            "target": "Target Device"
+            "target": "Target Device",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "reconfigure": {
@@ -243,7 +253,9 @@
             "price_source_target": "Price Source to Target",
             "price_target_source": "Price Target to Source",
             "source": "Source Device",
-            "target": "Target Device"
+            "target": "Target Device",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -276,7 +288,9 @@
             "export_price": "Export Price",
             "import_limit": "Import Limit",
             "import_price": "Import Price",
-            "name": "Grid Name"
+            "name": "Grid Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "values": {
@@ -286,7 +300,9 @@
             "export_limit": "Export Limit",
             "export_price": "Export Price",
             "import_limit": "Import Limit",
-            "import_price": "Import Price"
+            "import_price": "Import Price",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -315,7 +331,9 @@
             "efficiency_dc_to_ac": "DC to AC efficiency (Optional)",
             "max_power_ac_to_dc": "Max AC to DC power",
             "max_power_dc_to_ac": "Max DC to AC power",
-            "name": "Inverter Name"
+            "name": "Inverter Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "reconfigure": {
@@ -327,7 +345,9 @@
             "efficiency_dc_to_ac": "DC to AC efficiency (Optional)",
             "max_power_ac_to_dc": "Max AC to DC power",
             "max_power_dc_to_ac": "Max DC to AC power",
-            "name": "Inverter Name"
+            "name": "Inverter Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -353,7 +373,9 @@
           "data": {
             "connection": "Connection",
             "forecast": "Forecast Sensors",
-            "name": "Load Name"
+            "name": "Load Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "reconfigure": {
@@ -362,7 +384,9 @@
           "data": {
             "connection": "Connection",
             "forecast": "Forecast Sensors",
-            "name": "Load Name"
+            "name": "Load Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -400,7 +424,9 @@
           "data": {
             "is_sink": "Can consume unlimited power (Sink)",
             "is_source": "Can produce unlimited power (Source)",
-            "name": "Node Name"
+            "name": "Node Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "reconfigure": {
@@ -409,7 +435,9 @@
           "data": {
             "is_sink": "Can consume unlimited power (Sink)",
             "is_source": "Can produce unlimited power (Source)",
-            "name": "Node Name"
+            "name": "Node Name",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -437,7 +465,9 @@
             "curtailment": "Allow Curtailment (Optional)",
             "forecast": "Forecast Sensors",
             "name": "Solar Name",
-            "price_production": "Production Price (Optional)"
+            "price_production": "Production Price (Optional)",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         },
         "reconfigure": {
@@ -448,7 +478,9 @@
             "curtailment": "Allow Curtailment (Optional)",
             "forecast": "Forecast Sensors",
             "name": "Solar Name",
-            "price_production": "Production Price (Optional)"
+            "price_production": "Production Price (Optional)",
+            "quadratic_penalty_cost": "Flow Penalty Cost",
+            "nominal_power": "Nominal Power"
           }
         }
       },
@@ -544,6 +576,12 @@
       "battery_overcharge_percentage": {
         "name": "Overcharge percentage"
       },
+      "battery_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "battery_nominal_power": {
+        "name": "Nominal power"
+      },
       "battery_undercharge_cost": {
         "name": "Undercharge cost"
       },
@@ -568,6 +606,12 @@
       "connection_price_target_source": {
         "name": "Target to source price"
       },
+      "connection_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "connection_nominal_power": {
+        "name": "Nominal power"
+      },
       "grid_export_limit": {
         "name": "Export limit"
       },
@@ -579,6 +623,12 @@
       },
       "grid_import_price": {
         "name": "Import price"
+      },
+      "grid_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "grid_nominal_power": {
+        "name": "Nominal power"
       },
       "inverter_efficiency_ac_to_dc": {
         "name": "AC to DC efficiency"
@@ -592,14 +642,38 @@
       "inverter_max_power_dc_to_ac": {
         "name": "Max DC to AC power"
       },
+      "inverter_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "inverter_nominal_power": {
+        "name": "Nominal power"
+      },
       "load_forecast": {
         "name": "Forecast"
+      },
+      "load_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "load_nominal_power": {
+        "name": "Nominal power"
       },
       "solar_forecast": {
         "name": "Forecast"
       },
       "solar_price_production": {
         "name": "Production price"
+      },
+      "solar_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "solar_nominal_power": {
+        "name": "Nominal power"
+      },
+      "node_quadratic_penalty_cost": {
+        "name": "Flow penalty cost"
+      },
+      "node_nominal_power": {
+        "name": "Nominal power"
       }
     },
     "sensor": {

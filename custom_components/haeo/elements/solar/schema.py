@@ -6,6 +6,7 @@ from homeassistant.components.number import NumberDeviceClass, NumberEntityDescr
 from homeassistant.components.switch import SwitchEntityDescription
 from homeassistant.const import UnitOfPower
 
+from custom_components.haeo.const import CONF_NOMINAL_POWER, CONF_QUADRATIC_PENALTY_COST
 from custom_components.haeo.elements.input_fields import InputFieldInfo
 from custom_components.haeo.model.const import OutputType
 
@@ -60,6 +61,30 @@ INPUT_FIELDS: Final[tuple[InputFieldInfo[Any], ...]] = (
         output_type=OutputType.STATUS,
         default=True,
     ),
+    InputFieldInfo(
+        field_name=CONF_QUADRATIC_PENALTY_COST,
+        entity_description=NumberEntityDescription(
+            key=CONF_QUADRATIC_PENALTY_COST,
+            translation_key=f"{ELEMENT_TYPE}_{CONF_QUADRATIC_PENALTY_COST}",
+            native_min_value=0.0,
+            native_max_value=10.0,
+            native_step=0.0001,
+        ),
+        output_type=OutputType.PRICE,
+        time_series=True,
+    ),
+    InputFieldInfo(
+        field_name=CONF_NOMINAL_POWER,
+        entity_description=NumberEntityDescription(
+            key=CONF_NOMINAL_POWER,
+            translation_key=f"{ELEMENT_TYPE}_{CONF_NOMINAL_POWER}",
+            native_unit_of_measurement=UnitOfPower.KILO_WATT,
+            native_min_value=0.1,
+            native_max_value=1000.0,
+            native_step=0.1,
+        ),
+        output_type=OutputType.POWER,
+    ),
 )
 
 
@@ -78,6 +103,10 @@ class SolarConfigSchema(TypedDict):
     price_production: NotRequired[float]  # $/kWh production incentive
     curtailment: NotRequired[bool]  # Whether solar can be curtailed
 
+    # Quadratic Penalty
+    quadratic_penalty_cost: NotRequired[list[str] | float]
+    nominal_power: NotRequired[float]
+
 
 class SolarConfigData(TypedDict):
     """Solar element configuration with loaded values.
@@ -93,3 +122,7 @@ class SolarConfigData(TypedDict):
     # Optional fields
     price_production: NotRequired[float]  # $/kWh production incentive
     curtailment: NotRequired[bool]  # Whether solar can be curtailed
+
+    # Quadratic Penalty
+    quadratic_penalty_cost: NotRequired[list[float]]
+    nominal_power: NotRequired[float]

@@ -26,6 +26,8 @@ from .schema import (
     CONF_EFFICIENCY_DC_TO_AC,
     CONF_MAX_POWER_AC_TO_DC,
     CONF_MAX_POWER_DC_TO_AC,
+    CONF_NOMINAL_POWER,
+    CONF_QUADRATIC_PENALTY_COST,
     ELEMENT_TYPE,
     InverterConfigData,
     InverterConfigSchema,
@@ -73,7 +75,15 @@ class InverterAdapter:
         ts_loader = TimeSeriesLoader()
         if not ts_loader.available(hass=hass, value=config[CONF_MAX_POWER_DC_TO_AC]):
             return False
-        return ts_loader.available(hass=hass, value=config[CONF_MAX_POWER_AC_TO_DC])
+        if not ts_loader.available(hass=hass, value=config[CONF_MAX_POWER_AC_TO_DC]):
+            return False
+
+        if CONF_QUADRATIC_PENALTY_COST in config and not ts_loader.available(
+            hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST]
+        ):
+            return False
+
+        return True
 
     async def load(
         self,
@@ -111,6 +121,14 @@ class InverterAdapter:
         if CONF_EFFICIENCY_AC_TO_DC in config:
             data["efficiency_ac_to_dc"] = await const_loader.load(value=config[CONF_EFFICIENCY_AC_TO_DC])
 
+        if CONF_QUADRATIC_PENALTY_COST in config:
+            data["quadratic_penalty_cost"] = await ts_loader.load_intervals(
+                hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST], forecast_times=forecast_times
+            )
+
+        if CONF_NOMINAL_POWER in config:
+            data["nominal_power"] = config[CONF_NOMINAL_POWER]
+
         return data
 
     def model_elements(self, config: InverterConfigData) -> list[dict[str, Any]]:
@@ -136,6 +154,8 @@ class InverterAdapter:
                 "max_power_target_source": config["max_power_ac_to_dc"],
                 "efficiency_source_target": config.get("efficiency_dc_to_ac"),
                 "efficiency_target_source": config.get("efficiency_ac_to_dc"),
+                "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                "nominal_power": config.get("nominal_power"),
             },
         ]
 

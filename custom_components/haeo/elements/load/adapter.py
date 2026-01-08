@@ -17,7 +17,15 @@ from custom_components.haeo.model.elements.power_connection import (
 from custom_components.haeo.model.output_data import OutputData
 
 from .flow import LoadSubentryFlowHandler
-from .schema import CONF_CONNECTION, CONF_FORECAST, ELEMENT_TYPE, LoadConfigData, LoadConfigSchema
+from .schema import (
+    CONF_CONNECTION,
+    CONF_FORECAST,
+    CONF_NOMINAL_POWER,
+    CONF_QUADRATIC_PENALTY_COST,
+    ELEMENT_TYPE,
+    LoadConfigData,
+    LoadConfigSchema,
+)
 
 # Load output names
 type LoadOutputName = Literal[
@@ -51,7 +59,15 @@ class LoadAdapter:
     def available(self, config: LoadConfigSchema, *, hass: HomeAssistant, **_kwargs: Any) -> bool:
         """Check if load configuration can be loaded."""
         ts_loader = TimeSeriesLoader()
-        return ts_loader.available(hass=hass, value=config[CONF_FORECAST])
+        if not ts_loader.available(hass=hass, value=config[CONF_FORECAST]):
+            return False
+
+        if CONF_QUADRATIC_PENALTY_COST in config and not ts_loader.available(
+            hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST]
+        ):
+            return False
+
+        return True
 
     async def load(
         self,
@@ -68,12 +84,22 @@ class LoadAdapter:
             forecast_times=forecast_times,
         )
 
-        return {
+        data: LoadConfigData = {
             "element_type": config["element_type"],
             "name": config["name"],
             "connection": config[CONF_CONNECTION],
             "forecast": forecast,
         }
+
+        if CONF_QUADRATIC_PENALTY_COST in config:
+            data["quadratic_penalty_cost"] = await ts_loader.load_intervals(
+                hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST], forecast_times=forecast_times
+            )
+
+        if CONF_NOMINAL_POWER in config:
+            data["nominal_power"] = config[CONF_NOMINAL_POWER]
+
+        return data
 
     def model_elements(self, config: LoadConfigData) -> list[dict[str, Any]]:
         """Create model elements for Load configuration."""
@@ -89,6 +115,8 @@ class LoadAdapter:
                 "max_power_source_target": 0.0,
                 "max_power_target_source": config["forecast"],
                 "fixed_power": True,
+                "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                "nominal_power": config.get("nominal_power"),
             },
         ]
 

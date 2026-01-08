@@ -27,8 +27,10 @@ from .schema import (
     CONF_EFFICIENCY_TARGET_SOURCE,
     CONF_MAX_POWER_SOURCE_TARGET,
     CONF_MAX_POWER_TARGET_SOURCE,
+    CONF_NOMINAL_POWER,
     CONF_PRICE_SOURCE_TARGET,
     CONF_PRICE_TARGET_SOURCE,
+    CONF_QUADRATIC_PENALTY_COST,
     CONF_SOURCE,
     CONF_TARGET,
     ELEMENT_TYPE,
@@ -76,6 +78,8 @@ class ConnectionAdapter:
             CONF_EFFICIENCY_TARGET_SOURCE,
             CONF_PRICE_SOURCE_TARGET,
             CONF_PRICE_TARGET_SOURCE,
+            CONF_QUADRATIC_PENALTY_COST,
+            CONF_NOMINAL_POWER,
         ]
 
         for field in optional_fields:
@@ -127,6 +131,14 @@ class ConnectionAdapter:
                 hass=hass, value=config[CONF_PRICE_TARGET_SOURCE], forecast_times=forecast_times
             )
 
+        if CONF_QUADRATIC_PENALTY_COST in config:
+            data["quadratic_penalty_cost"] = await ts_loader.load_intervals(
+                hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST], forecast_times=forecast_times
+            )
+
+        if CONF_NOMINAL_POWER in config:
+            data["nominal_power"] = config[CONF_NOMINAL_POWER]
+
         return data
 
     def model_elements(self, config: ConnectionConfigData) -> list[dict[str, Any]]:
@@ -143,6 +155,8 @@ class ConnectionAdapter:
                 "efficiency_target_source": config.get("efficiency_target_source"),
                 "price_source_target": config.get("price_source_target"),
                 "price_target_source": config.get("price_target_source"),
+                "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                "nominal_power": config.get("nominal_power"),
             }
         ]
 

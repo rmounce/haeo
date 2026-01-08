@@ -20,6 +20,8 @@ CONF_UPDATE_INTERVAL_MINUTES: Final = "update_interval_minutes"
 CONF_DEBOUNCE_SECONDS: Final = "debounce_seconds"
 CONF_HORIZON_PRESET: Final = "horizon_preset"
 CONF_ADVANCED_MODE: Final = "advanced_mode"
+CONF_QUADRATIC_PENALTY_COST: Final = "quadratic_penalty_cost"
+CONF_NOMINAL_POWER: Final = "nominal_power"
 
 ELEMENT_TYPE_NETWORK: Final = "network"
 

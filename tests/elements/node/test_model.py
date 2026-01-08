@@ -41,7 +41,14 @@ CREATE_CASES: Sequence[CreateCase] = [
             is_sink=False,
         ),
         "model": [
-            {"element_type": "node", "name": "node_main", "is_source": False, "is_sink": False},
+            {
+                "element_type": "node",
+                "name": "node_main",
+                "is_source": False,
+                "is_sink": False,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
+            },
         ],
     },
 ]

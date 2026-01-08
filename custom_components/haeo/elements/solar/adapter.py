@@ -21,7 +21,9 @@ from .schema import (
     CONF_CONNECTION,
     CONF_CURTAILMENT,
     CONF_FORECAST,
+    CONF_NOMINAL_POWER,
     CONF_PRICE_PRODUCTION,
+    CONF_QUADRATIC_PENALTY_COST,
     DEFAULTS,
     ELEMENT_TYPE,
     SolarConfigData,
@@ -58,7 +60,15 @@ class SolarAdapter:
     def available(self, config: SolarConfigSchema, *, hass: HomeAssistant, **_kwargs: Any) -> bool:
         """Check if solar configuration can be loaded."""
         ts_loader = TimeSeriesLoader()
-        return ts_loader.available(hass=hass, value=config[CONF_FORECAST])
+        if not ts_loader.available(hass=hass, value=config[CONF_FORECAST]):
+            return False
+
+        if CONF_QUADRATIC_PENALTY_COST in config and not ts_loader.available(
+            hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST]
+        ):
+            return False
+
+        return True
 
     async def load(
         self,
@@ -91,6 +101,14 @@ class SolarAdapter:
         if CONF_CURTAILMENT in config:
             data["curtailment"] = await const_loader_bool.load(value=config[CONF_CURTAILMENT])
 
+        if CONF_QUADRATIC_PENALTY_COST in config:
+            data["quadratic_penalty_cost"] = await ts_loader.load_intervals(
+                hass=hass, value=config[CONF_QUADRATIC_PENALTY_COST], forecast_times=forecast_times
+            )
+
+        if CONF_NOMINAL_POWER in config:
+            data["nominal_power"] = await const_loader_float.load(value=config[CONF_NOMINAL_POWER])
+
         return data
 
     def model_elements(self, config: SolarConfigData) -> list[dict[str, Any]]:
@@ -106,6 +124,8 @@ class SolarAdapter:
                 "max_power_target_source": 0.0,
                 "fixed_power": not config.get("curtailment", DEFAULTS[CONF_CURTAILMENT]),
                 "price_source_target": config.get("price_production"),
+                "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                "nominal_power": config.get("nominal_power"),
             },
         ]
 

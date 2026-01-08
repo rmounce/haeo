@@ -61,18 +61,24 @@ CREATE_CASES: Sequence[CreateCase] = [
                 "name": "battery_main:undercharge",
                 "capacity": [0.5, 0.5],
                 "initial_charge": 0.5,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             },
             {
                 "element_type": "battery",
                 "name": "battery_main:normal",
                 "capacity": [8.0, 8.0],
                 "initial_charge": 4.0,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             },
             {
                 "element_type": "battery",
                 "name": "battery_main:overcharge",
                 "capacity": [0.49999999999999933, 0.49999999999999933],
                 "initial_charge": 0.0,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             },
             {
                 "element_type": "node",
@@ -157,6 +163,8 @@ CREATE_CASES: Sequence[CreateCase] = [
                 "name": "battery_normal:normal",
                 "capacity": [10.0, 10.0],
                 "initial_charge": 5.0,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             },
             {
                 "element_type": "node",

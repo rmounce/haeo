@@ -26,8 +26,10 @@ from .schema import (
     CONF_MAX_CHARGE_POWER,
     CONF_MAX_DISCHARGE_POWER,
     CONF_MIN_CHARGE_PERCENTAGE,
+    CONF_NOMINAL_POWER,
     CONF_OVERCHARGE_COST,
     CONF_OVERCHARGE_PERCENTAGE,
+    CONF_QUADRATIC_PENALTY_COST,
     CONF_UNDERCHARGE_COST,
     CONF_UNDERCHARGE_PERCENTAGE,
     DEFAULTS,
@@ -122,6 +124,8 @@ class BatteryAdapter:
             CONF_EARLY_CHARGE_INCENTIVE,
             CONF_UNDERCHARGE_PERCENTAGE,
             CONF_OVERCHARGE_PERCENTAGE,
+            CONF_QUADRATIC_PENALTY_COST,
+            CONF_NOMINAL_POWER,
         ]
         return all(entities_available(config.get(field)) for field in optional_fields)  # type: ignore[arg-type]
 
@@ -224,6 +228,16 @@ class BatteryAdapter:
                 hass=hass, forecast_times=forecast_times, value=overcharge_cost
             )
 
+        qp_cost = config.get(CONF_QUADRATIC_PENALTY_COST)
+        if qp_cost is not None:
+            data["quadratic_penalty_cost"] = await loader.load_intervals(
+                hass=hass, forecast_times=forecast_times, value=qp_cost
+            )
+
+        nominal_power = config.get(CONF_NOMINAL_POWER)
+        if nominal_power is not None:
+            data["nominal_power"] = nominal_power
+
         return data
 
     def model_elements(self, config: BatteryConfigData) -> list[dict[str, Any]]:
@@ -289,6 +303,8 @@ class BatteryAdapter:
                     "name": section_name,
                     "capacity": undercharge_capacity.tolist(),
                     "initial_charge": section_initial_charge,
+                    "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                    "nominal_power": config.get("nominal_power"),
                 }
             )
 
@@ -309,6 +325,8 @@ class BatteryAdapter:
                 "name": section_name,
                 "capacity": normal_capacity.tolist(),
                 "initial_charge": section_initial_charge,
+                "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                "nominal_power": config.get("nominal_power"),
             }
         )
 
@@ -330,6 +348,8 @@ class BatteryAdapter:
                     "name": section_name,
                     "capacity": overcharge_capacity.tolist(),
                     "initial_charge": section_initial_charge,
+                    "quadratic_penalty_cost": config.get("quadratic_penalty_cost"),
+                    "nominal_power": config.get("nominal_power"),
                 }
             )
 

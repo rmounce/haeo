@@ -53,6 +53,8 @@ CREATE_CASES: Sequence[CreateCase] = [
                 "max_power_target_source": 0.0,
                 "fixed_power": True,
                 "price_source_target": 0.15,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             },
         ],
     },

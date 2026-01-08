@@ -58,6 +58,8 @@ CREATE_CASES: Sequence[CreateCase] = [
                 "efficiency_target_source": [90.0],
                 "price_source_target": [0.1],
                 "price_target_source": [0.05],
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             }
         ],
     },
@@ -81,6 +83,8 @@ CREATE_CASES: Sequence[CreateCase] = [
                 "efficiency_target_source": None,
                 "price_source_target": None,
                 "price_target_source": None,
+                "quadratic_penalty_cost": None,
+                "nominal_power": None,
             }
         ],
     },
